@@ -1010,6 +1010,12 @@
   .comm-fallback-shell .donor-contact-card .card-act.is-disabled { opacity:.38; cursor:default; }
 
 
+/* Full email workspace retains the donor Gmail visuals and controls. */
+.body-area.crm-email-active > .main-workspace, .body-area.crm-email-active > .comm-panel { display:none !important; }
+.crm-full-email { flex:1; min-width:0; min-height:0; display:flex; padding:var(--crm-page-gap); }
+.crm-full-email[hidden] { display:none !important; }
+.crm-full-email > .mail-host { width:100%; min-width:0; min-height:0; }
+.crm-full-email .gm { width:100%; height:100%; }
 /* ── EMAIL (Gmail light design) ── */
 .gm, .gc, .gm-modal-back {
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -1816,6 +1822,9 @@ body:not([data-page="mail"]) .gc-window { display: none; }
         </div>
       </div>
     </nav>
+
+    <!-- Full-size donor Email workspace; the same mail component also serves Communications. -->
+    <section class="crm-full-email" id="crmFullEmailPage" aria-label="Email workspace" hidden><div class="mail-host" id="crmFullEmailHost"></div></section>
 
     <!-- ── MAIN WORKSPACE ── -->
     <div class="main-workspace">
@@ -8242,8 +8251,17 @@ function activateSidebarDestination(item){
   if(!item) return;
   const workspace=item.dataset.workspace;
   const admin=item.dataset.admin;
-  if(workspace==='leads'&&commPanelInstance?.setTab) commPanelInstance.setTab('leads');
-  else if(workspace==='email'&&commPanelInstance?.setTab) commPanelInstance.setTab('email');
+  const emailPage=document.getElementById('crmFullEmailPage');
+  const isEmail=workspace==='email';
+  emailPage.hidden=!isEmail;
+  document.querySelector('.body-area')?.classList.toggle('crm-email-active',isEmail);
+  document.body.dataset.page=isEmail?'mail':'crm';
+  if(isEmail){ window.DonorMail?.mount(document.getElementById('crmFullEmailHost'),'full'); }
+  else if(workspace==='leads'&&commPanelInstance?.setTab){ commPanelInstance.setTab('leads'); }
+  if(!isEmail&&window.DonorMail&&document.getElementById('crmFullEmailHost').contains(document.querySelector('.gm'))){
+    const commHost=document.getElementById('mailHostComms');
+    if(commHost)window.DonorMail.mount(commHost,'compact');
+  }
   else window.dispatchEvent(new CustomEvent('crm:navigation',{detail:{workspace:workspace||null,admin:admin||null}}));
   document.querySelectorAll('.sidebar .nav-item[data-workspace]').forEach(node=>node.classList.toggle('active',node===item));
 }
